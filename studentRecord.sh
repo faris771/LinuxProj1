@@ -45,9 +45,25 @@ function printSem(){
 }  
 
 function printAllAvg(){
+    cnt=0
+    total=0
     
-    echo ''
-    
+    while read -r line;do
+        
+        tmpLine=$(echo "$line" | cut -d ';' -f1)  #checks every semester in file
+        
+        if [ "$tmpLine" == "Year/Semester" ];then
+            
+            continue
+
+        fi
+        
+
+
+    done 
+
+
+
 }  
 
 function printAllAvgSem(){
@@ -97,15 +113,127 @@ function printNumLabsTaken(){
     echo ''
     
 }  
-function insertNewSem(){
+function insertNewSem(){ #10
+
+    newSemString=
+    numberOfHours=0
+        
+    echo 'input semester you want to add record YEAR-YEAR/SEM#'
+    echo "e.g: '2022-2023/1'"
+    read sem 
+
+    echo '-------------------------------------------------------'
     
-    echo ''
+    while read -r line;do
+        
+        tmpSem=$(echo "$line" | cut -d ';' -f1)  #checks every semester in file
+        
+        # echo "TESTING TMPSEM"
+        # echo "$tmpSem"
+        
+        if [ "$tmpSem" == "$sem" ];then
+            echo "SEMESTER ALREADY EXIST!"
+            echo '-------------------------------------------------------'
+
+            return
+
+        fi
+
+    done < $1 #refrencing the file we want to read from 
+    
+    newSemString+=$sem
+    
+    
+    newSemString+="; "#for e.g 2021-2022/2; 
+
+    echo "PLEASE INPUT NUMBER OF COURSES IN THIS SEMESTER:"
+
+    read numberOfCourses
+
+
+    while true;do
+        
+        if [ "$numberOfCourses" -eq 0 ];then
+
+            break
+
+        fi
+
+        echo "PLEASE INPUT COURSE ID e.g 'ENCS3130' "
+        read courseID     #try to handle misinputs
+
+        courseLitters=$(echo $courseID | cut -b 1-4 )
+        
+        if [ "$courseLitters" != "ENEE" ] && [ "$courseLitters" != "ENCS" ];then
+
+            echo "INVALID COURSE ID "
+            return
+
+        fi
+        
+        echo $courseID | tr -d "[a-zA-Z]"  >> tmp.txt #UTIL file
+        
+        courseNumbers=`cat tmp.txt`
+        numberOfHours=$numberOfHours+$(echo $courseNumbers | cut -b 2 )
+        
+
+        >tmp.txt    #making the file empty
+
+        if [ $courseNumbers -le 1999 ] || [ $courseNumbers -ge 6000 ];then
+
+            echo "WRONG COURSE ID"
+            
+            return
+
+
+        fi
+
+
+        echo "PLEASE INPUT COURSE MARK '60-99' OR 'F/FA/I' "
+        read courseMark
+
+        if [ "$courseMark" != "F" ] && [ "$courseMark" != "FA" ] && [ "$courseMark" != "I" ];then
+
+            if [ "$courseMark" -ge 100 ] || [ "$courseMark" -le 59 ];then
+
+                echo "INVALID MARK "
+
+
+
+            fi
+
+
+        fi
+
+        newSemString+=$courseID
+        newSemString+=" "
+        newSemString+=$courseMark
+        newSemString+=", "
+
+        
+
+        numberOfCourses=$((numberOfCourses-1))
+
+    done
+
+    if [ $numberOfHours -le 11 ];then
+        echo "NUMBER OF HOURS LESS THAN 12 SEMESTER CAN'T BE ADDED"
+        return
+
+
+    fi
+
+    echo "SEMESTER ADDED SUCCESSFULLY"
+    echo "$newSemString" >> $1
+
+
     
 
 }  
+
 function changeGrade(){
     
-    echo ''
+    echo 'in'
     
 
 }  
@@ -177,7 +305,7 @@ do
         7) printHoursSem;;
         8) printNumTotalCourseTaken;;
         9) printNumLabsTaken;;
-        10) insertNewSem;;
+        10) insertNewSem  $fileName;;
         11) changeGrade;;
         12) break;;
 
