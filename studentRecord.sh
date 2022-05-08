@@ -45,22 +45,8 @@ function printSem(){
 }  
 
 function printAllAvg(){
-    cnt=0
-    total=0
-    
-    while read -r line;do
-        
-        tmpLine=$(echo "$line" | cut -d ';' -f1)  #checks every semester in file
-        
-        if [ "$tmpLine" == "Year/Semester" ];then
-            
-            continue
-
-        fi
-        
-
-
-    done 
+   
+   echo ""
 
 
 
@@ -74,16 +60,72 @@ function printAllAvgSem(){
 }  
 
 function printTotalPassedHours(){
-    
-    echo ''
+    grep "EN" $1 | tr -s " " " " | cut -d ";" -f2  | tr -s "," "\n" | grep -v "I" | sed 's/FA/50/' | sed 's/FA/55/' > tmp.txt
+    sort tmp.txt > tmp2.txt
+    uniq tmp2.txt > tmp.txt
+    hrs=0
+
+
+    while  read -r line;do
+        tmp=$(echo $line | cut -b6 )
+        hrs=$(($tmp + $hrs))
+
+
+    done<tmp.txt
+
+
+
+
+    echo "total passed hours: $hrs"
     
 
 }
 
-function alotOfTalk(){ #6
+function alotOfTalk(){ #6 NOT SURE ABOUT THE EQUATION
+    grep "EN" $1 | tr -s " " " " | cut -d ";" -f2  | tr -s "," "\n" | grep -v "I" | sed 's/FA/50/' | sed 's/FA/55/' > tmp.txt
+    sort tmp.txt > tmp2.txt
+    uniq tmp2.txt > tmp.txt
+    hrs=0
+
+
+    while  read -r line;do
+        tmp=$(echo $line | cut -b6 )
+        hrs=$(($tmp + $hrs))
+
+
+    done<tmp.txt
+
+
+    total=$hrs
+
+
     
-    echo ''
-    
+    grep "EN" $1 | tr -s " " " " | cut -d ";" -f2  | tr -s "," "\n" | grep -v "I"  > tmp.txt
+    sort tmp.txt > tmp2.txt
+    uniq tmp2.txt > tmp.txt
+
+    fCnt=0
+    while  read -r line;do
+
+        mark=$(echo $line | cut -d " " -f2)
+        hrs=$(echo $line | cut -b 6 )
+
+
+        if [[ $mark == "FA" ]] || [[ $mark == "F" ]];then
+            fCnt=$(($fCnt + $hrs))
+
+
+        fi
+
+
+    done<tmp.txt
+    # percentage=$($total/$fCnt)
+
+
+
+    printf "the percentage of total passed hours in relation to total F and FA " 
+    bc <<< "scale=2; $total/$fCnt"
+
 
 }  
 
@@ -110,10 +152,27 @@ function printNumTotalCourseTaken(){
 
 function printNumLabsTaken(){
     
-    echo ''
-    
+    grep "EN" $1 | tr -s " " " " | cut -d ";" -f2  | tr -s "," "\n" > tmp.txt
+    sort tmp.txt >  tmp2.txt
+    uniq tmp2.txt > tmp.txt
+    labs=0
+    while read -r line;do
+        scndNumber=$(echo $line | cut -b 6)
+        if [ $scndNumber -eq 1 ];then
+            
+            labs=$(($labs + 1 ))
+
+        fi
+
+
+    done < tmp.txt
+
+    echo "number of labs taken in all semesters $labs"
+
+
+
 }  
-function insertNewSem(){ #10
+function insertNewSem(){ #10 FIX APPENDING ';' 
 
     newSemString=
     numberOfHours=0
@@ -300,14 +359,14 @@ do
         2) printSem $fileName ;;
         3) printAllAvg;;
         4) printAllAvgSem;;
-        5) printTotalPassedHours;;
-        6) alotOfTalk;;
+        5) printTotalPassedHours $fileName ;;
+        6) alotOfTalk $fileName;;
         7) printHoursSem;;
         8) printNumTotalCourseTaken;;
-        9) printNumLabsTaken;;
+        9) printNumLabsTaken $fileName ;;
         10) insertNewSem  $fileName;;
         11) changeGrade;;
-        12) break;;
+        12) break ;;
 
     esac
 
