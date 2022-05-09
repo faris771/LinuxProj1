@@ -60,7 +60,7 @@ function printAllAvgSem(){
 }  
 
 function printTotalPassedHours(){
-    grep "EN" $1 | tr -s " " " " | cut -d ";" -f2  | tr -s "," "\n" | grep -v "I" | sed 's/FA/50/' | sed 's/FA/55/' > tmp.txt
+    grep "EN" $1 | tr -s " " " " | cut -d ";" -f2  | tr -s "," "\n" | grep -v "I" |grep -v "F" | grep -v "FA" > tmp.txt #sed 's/FA/50/' | sed 's/FA/55/' > tmp.txt
     sort tmp.txt > tmp2.txt
     uniq tmp2.txt > tmp.txt
     hrs=0
@@ -82,7 +82,7 @@ function printTotalPassedHours(){
 }
 
 function alotOfTalk(){ #6 NOT SURE ABOUT THE EQUATION
-    grep "EN" $1 | tr -s " " " " | cut -d ";" -f2  | tr -s "," "\n" | grep -v "I" | sed 's/FA/50/' | sed 's/FA/55/' > tmp.txt
+    grep "EN" $1 | tr -s " " " " | cut -d ";" -f2  | tr -s "," "\n" | grep -v "I" |grep -v "F" | grep -v "FA" > tmp.txt #sed 's/FA/50/' | sed 's/FA/55/' > tmp.txt
     sort tmp.txt > tmp2.txt
     uniq tmp2.txt > tmp.txt
     hrs=0
@@ -179,7 +179,16 @@ function insertNewSem(){ #10 FIX APPENDING ';'
         
     echo 'input semester you want to add record YEAR-YEAR/SEM#'
     echo "e.g: '2022-2023/1'"
-    read sem 
+    read sem
+
+    lastNumInSem=$(cat $sem | cut -d '/' -f2)
+    if [[ $lastNumInSem -le 0 ]] || [[ $lastNumInSem -ge 3 ]];then
+        
+        echo "INVALID INPUT"
+        echo "SEMESTER MUST BE BETWEEN 1-3 "
+        return
+
+    fi
 
     echo '-------------------------------------------------------'
     
@@ -199,11 +208,11 @@ function insertNewSem(){ #10 FIX APPENDING ';'
         fi
 
     done < $1 #refrencing the file we want to read from 
+    colon=";"
     
-    newSemString+=$sem
+    newSemString+="$sem$colon "
     
-    
-    newSemString+="; "#for e.g 2021-2022/2; 
+    # newSemString+="; "#for e.g 2021-2022/2; 
 
     echo "PLEASE INPUT NUMBER OF COURSES IN THIS SEMESTER:"
 
@@ -267,7 +276,11 @@ function insertNewSem(){ #10 FIX APPENDING ';'
         newSemString+=$courseID
         newSemString+=" "
         newSemString+=$courseMark
-        newSemString+=", "
+        if [ $numberOfCourses -gt 1 ];then
+
+            newSemString+=", "
+
+        fi
 
         
 
@@ -275,7 +288,7 @@ function insertNewSem(){ #10 FIX APPENDING ';'
 
     done
 
-    if [ $numberOfHours -le 11 ];then
+    if [[ $numberOfHours -le 11 ]];then
         echo "NUMBER OF HOURS LESS THAN 12 SEMESTER CAN'T BE ADDED"
         return
 
@@ -283,7 +296,10 @@ function insertNewSem(){ #10 FIX APPENDING ';'
     fi
 
     echo "SEMESTER ADDED SUCCESSFULLY"
+
+    echo "" >> $1 #new line just in case
     echo "$newSemString" >> $1
+    sed -i '/^$/d' $1 #removes empty lines from file  -i for editing file in place 
 
 
     
