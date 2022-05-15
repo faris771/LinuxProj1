@@ -203,8 +203,12 @@ function printHoursSem() {
 }
 
 function printNumTotalCourseTaken() {
+    #NOTE: COURSES THAT WITHDRAWNED ARE INCLUDED REPEATED ARE NOT
 
-    echo ''
+    grep "EN" $1 | tr -s " " " " | cut -d ";" -f2 | tr -s "," "\n" | sed 's/I/0/' | sed 's/FA/50/' | sed 's/F/55/' >Egrades.txt
+    sort -r Egrades.txt >sorted_Egrades.txt
+    awk '!x[$1]++' sorted_Egrades.txt >Egrades.txt
+    cat Egrades.txt | wc -l 
 
 }
 
@@ -274,16 +278,6 @@ function insertNewSem() { #10 FIX APPENDING ';'
 
     fi
 
-    # if echo $sem | grep -q "[0-9]{4}-[0-9]{4}/" ; then
-
-    #     :
-
-    # else
-    #     echo "INVALID SEMESTER"
-    #     return
-
-    # fi
-
     lastNumInSem=$(echo $sem | cut -d '/' -f2)
     if [[ $lastNumInSem -le 0 ]] || [[ $lastNumInSem -gt 3 ]]; then
 
@@ -298,9 +292,6 @@ function insertNewSem() { #10 FIX APPENDING ';'
     while read -r line; do
 
         tmpSem=$(echo "$line" | cut -d ';' -f1) #checks every semester in file
-
-        # echo "TESTING TMPSEM"
-        # echo "$tmpSem"
 
         if [ "$tmpSem" == "$sem" ]; then
             echo "SEMESTER ALREADY EXIST!"
@@ -369,21 +360,9 @@ function insertNewSem() { #10 FIX APPENDING ';'
 
         echo "$courseID" >>tmpID.txt
 
-        # echo $courseID | tr -d "[a-zA-Z]"  >> tmp.txt #UTIL file
-
-        # courseNumbers=`cat tmp.txt`
-
         numberOfHours=$numberOfHours+$(echo $courseNumbers | cut -b 2)
 
-        >tmp.txt #making the file empty
-
-        # if [ $courseNumbers -le 1999 ] || [ $courseNumbers -ge 6000 ];then
-
-        #     echo "WRONG COURSE ID, ID SHOULD BE BETWEEN 2000-5999"
-
-        #     return
-
-        # fi
+        : >tmp.txt #making the file empty
 
         echo "PLEASE INPUT COURSE MARK '60-99' OR 'F/FA/I' "
         read courseMark
@@ -434,7 +413,58 @@ function insertNewSem() { #10 FIX APPENDING ';'
 
 function changeGrade() {
 
-    echo 'in'
+    echo "PLEASE INPUT THE COURSE YOU WANT TO CHANGE ITS MARK"
+    read course
+    echo "PLEASE INPUT THE SEMESTER"
+    read semester
+    echo "INPUT NEW MARK"
+    read newMark
+    while [ "$newMark" != "F" ] && [ "$newMark" != "FA" ] && [ "$newMark" != "I" ]; do
+
+        if [ "$newMark" -ge 100 ] || [ "$newMark" -le 59 ]; then
+
+            echo "INVALID MARK "
+            echo "TRY AGAIN WITH VALID MARK PLEASE F, I, FA 60-99 "
+
+            read newMark
+
+            continue
+
+        fi
+
+        break #maybe
+
+    done
+
+    newString="$course $newMark"
+    # echo tst $newString
+    while read -r line; do
+
+        tmpSem=$(echo "$line" | cut -d ';' -f1) #checks every semester in file
+
+        # echo "TESTING TMPSEM"
+        # echo "$tmpSem"
+
+        if [ "$tmpSem" == "$semester" ]; then
+
+            echo $line | grep "EN" | tr -s " " " " | cut -d ";" -f2 | tr -s "," "\n" >tmp.txt
+            oldString=$(cat tmp.txt | grep $course)
+            oldString="${oldString:1}" #REMOVES SPACE FROM BEGININNG
+
+            sed -i 's/$oldString/$newString/' $1
+
+
+            echo "CHANGED SUCCESSFULLY "
+            return
+
+        fi
+    #formatting stuff
+    done \
+        < \
+        \
+        $1
+
+    echo "FAILED TO CHANGE"
 
 }
 
@@ -489,14 +519,14 @@ while true; do
         1) printAll $fileName ;; #ASK IF THAT'S RIGHT ?
     2) printSem $fileName ;;
     3) printAllAvg $fileName ;;
-    4) printAllAvgSem $fileName;;
+    4) printAllAvgSem $fileName ;;
     5) printTotalPassedHours $fileName ;;
     6) alotOfTalk $fileName ;;
     7) printHoursSem $fileName ;; #done
     8) printNumTotalCourseTaken $fileName ;;
     9) printNumLabsTaken $fileName ;;
     10) insertNewSem $fileName ;;
-    11) changeGrade ;;
+    11) changeGrade $fileName ;;
     12) break ;;
 
     esac
