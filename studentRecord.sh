@@ -60,15 +60,19 @@ function printAllAvgSem(){
 }  
 
 function printTotalPassedHours(){
+
     grep "EN" $1 | tr -s " " " " | cut -d ";" -f2  | tr -s "," "\n" | grep -v "I" |grep -v "F" | grep -v "FA" > tmp.txt #sed 's/FA/50/' | sed 's/FA/55/' > tmp.txt
-    sort tmp.txt > tmp2.txt
-    uniq tmp2.txt > tmp.txt
+    
+    sort -r tmp.txt > tmp2.txt
+    awk '!x[$1]++' tmp2.txt > tmp.txt
+
     hrs=0
 
 
     while  read -r line;do
-        tmp=$(echo $line | cut -b6 )
+        tmp=$(echo $line | cut -b6 ) #the 6th byte is always the number of hours of that course e.g ENEE2321, 3 HOURS
         hrs=$(($tmp + $hrs))
+
 
 
     done<tmp.txt
@@ -81,14 +85,20 @@ function printTotalPassedHours(){
 
 }
 
+
+
 function alotOfTalk(){ #6 NOT SURE ABOUT THE EQUATION
     grep "EN" $1 | tr -s " " " " | cut -d ";" -f2  | tr -s "," "\n" | grep -v "I" |grep -v "F" | grep -v "FA" > tmp.txt #sed 's/FA/50/' | sed 's/FA/55/' > tmp.txt
-    sort tmp.txt > tmp2.txt
-    uniq tmp2.txt > tmp.txt
+    sort -r tmp.txt > tmp2.txt
+    awk '!x[$1]++' tmp2.txt > tmp.txt
+
+    # uniq tmp2.txt > tmp.txt
+    
     hrs=0
 
 
     while  read -r line;do
+
         tmp=$(echo $line | cut -b6 )
         hrs=$(($tmp + $hrs))
 
@@ -102,7 +112,9 @@ function alotOfTalk(){ #6 NOT SURE ABOUT THE EQUATION
     
     grep "EN" $1 | tr -s " " " " | cut -d ";" -f2  | tr -s "," "\n" | grep -v "I"  > tmp.txt
     sort tmp.txt > tmp2.txt
-    uniq tmp2.txt > tmp.txt
+    awk '!x[$1]++' tmp2.txt > tmp.txt #removes if u have repeated courses with the same id and different mark
+
+    # uniq tmp2.txt > tmp.txt
 
     fCnt=0
     while  read -r line;do
@@ -137,10 +149,44 @@ function alotOfTalk(){ #6 NOT SURE ABOUT THE EQUATION
 # }  
 
 function printHoursSem(){
-    
-    echo ''
-    
 
+    while read -r line;do
+
+        tmpSem=$(echo "$line" | cut -d ';' -f1)  #checks every semester in file
+        
+        if [ $tmpSem == "Year/Semester" ];then
+        
+            continue
+        
+        fi
+
+        echo $line | grep "EN" | tr -s " " " " | cut -d ";" -f2  | tr -s "," "\n" > tmp.txt
+        sort tmp.txt >  tmp2.txt
+        uniq tmp2.txt > tmp.txt
+        hrs=0
+    
+        while read -r line2;do
+
+            scndNumber=$(echo $line2 | cut -b 6)
+            hrs=$(($hrs + $scndNumber ))
+
+            
+
+        done < tmp.txt
+
+
+
+
+        echo "$line"
+        echo "Credit hours in this semester: "
+        echo "$hrs"
+
+        echo '-------------------------------------------------------'
+
+
+
+    done< $1
+    
 }  
 
 function printNumTotalCourseTaken(){
@@ -152,7 +198,9 @@ function printNumTotalCourseTaken(){
 
 function printNumLabsTaken(){
     
-    grep "EN" $1 | tr -s " " " " | cut -d ";" -f2  | tr -s "," "\n" > tmp.txt
+    #THIS FUNCTION PRINTS NO OF LABS TAKEN (WITHOUT REPETION) e.g IF A LAB TAKEN IN 2 SEMESTERS IT COUNTED AS 1
+
+    grep "EN" $1 | tr -s " " " " | cut -d ";" -f2  | tr -s "," "\n" > tmp.txt #PUTS EVERY COURSE IN A LINE 
     sort tmp.txt >  tmp2.txt
     uniq tmp2.txt > tmp.txt
     labs=0
@@ -171,9 +219,12 @@ function printNumLabsTaken(){
 
 
 
-}  
+}
+
 function insertNewSem(){ #10 FIX APPENDING ';' 
 
+    touch tmpID.txt #making this file empty
+    :>tmpID.txt 
     newSemString=
     numberOfHours=0
         
@@ -181,8 +232,59 @@ function insertNewSem(){ #10 FIX APPENDING ';'
     echo "e.g: '2022-2023/1'"
     read sem
 
-    lastNumInSem=$(cat $sem | cut -d '/' -f2)
-    if [[ $lastNumInSem -le 0 ]] || [[ $lastNumInSem -ge 3 ]];then
+    dash=$(echo "$sem" | cut -b5)
+    divSymb=$(echo "$sem" | cut -b10)
+
+    if [ $dash != '-' ];then
+        
+        echo "INVALID SEMESTER"
+        return
+
+    fi
+    
+    if [ $divSymb != '/' ];then
+        
+        echo "INVALID SEMESTER"
+        return
+        
+    fi
+    
+    semFirstYear=$(echo $sem | cut -d'/' -f1 | cut -d '-' -f1)
+    semScndYear=$(echo $sem | cut -d'/' -f1 | cut -d '-' -f2)
+
+    if [[ $(echo $semFirstYear) -le 999 ]] || [[ $(echo $semFirstYear) -gt 9999 ]];then
+        echo "INVALID SEMESTER"
+        return
+
+
+    fi 
+    
+    if [[ $(echo $semScndYear) -le 999 ]] || [[ $(echo $semScndYear) -gt 9999 ]];then
+        echo "INVALID SEMESTER"
+        return
+
+
+    fi 
+
+
+
+
+    # if echo $sem | grep -q "[0-9]{4}-[0-9]{4}/" ; then
+
+    #     :        
+
+    # else
+    #     echo "INVALID SEMESTER"
+    #     return
+
+    # fi
+
+
+
+
+    
+    lastNumInSem=$(echo $sem | cut -d '/' -f2)
+    if [[ $lastNumInSem -le 0 ]] || [[ $lastNumInSem -gt 3 ]];then
         
         echo "INVALID INPUT"
         echo "SEMESTER MUST BE BETWEEN 1-3 "
@@ -223,55 +325,103 @@ function insertNewSem(){ #10 FIX APPENDING ';'
         
         if [ "$numberOfCourses" -eq 0 ];then
 
+
             break
 
         fi
 
+
         echo "PLEASE INPUT COURSE ID e.g 'ENCS3130' "
         read courseID     #try to handle misinputs
 
-        courseLitters=$(echo $courseID | cut -b 1-4 )
-        
-        if [ "$courseLitters" != "ENEE" ] && [ "$courseLitters" != "ENCS" ];then
 
-            echo "INVALID COURSE ID "
-            return
+        if  cat  tmpID.txt  | grep -q $courseID ;then
+            echo "COURSE ALREADY EXIST IN THIS SEMESTER! TRY OTHER COURSES.."
+            continue
 
         fi
+
+        courseLitters=$(echo $courseID | cut -b 1-4 )
+        courseNumbers=$(echo $courseID | cut -b 5-8 )
+
+
         
-        echo $courseID | tr -d "[a-zA-Z]"  >> tmp.txt #UTIL file
+        while true;do
+
+            if [[ "$courseLitters" == "ENEE" ]] || [[ "$courseLitters" == "ENCS" ]] ;then
+                if [[ $courseNumbers -gt 1999 ]] && [[ $courseNumbers -lt 6000 ]];then
+                
+                    break
+                
+                fi
+
+            fi
+
+            echo "INVALID COURSE ID, ID SHOULD START WITH 'ENCS' OR 'ENEE' COURSE NUMBERS SHOULD BE BETWEEN 2000-5999 "
+            echo "TRY AGAIN, OR INPUT -1 TO QUIT"
+
+
+            read courseID     
+            courseLitters=$(echo $courseID | cut -b 1-4 )
+            courseNumbers=$(echo $courseID | cut -b 5-8 )
+
+            if [[ $courseID -eq -1 ]];then
+                
+                return
+
+            fi
+            
+            
+
+        done
+
+        echo "$courseID" >> tmpID.txt
+
         
-        courseNumbers=`cat tmp.txt`
+        # echo $courseID | tr -d "[a-zA-Z]"  >> tmp.txt #UTIL file
+        
+        # courseNumbers=`cat tmp.txt`
+
         numberOfHours=$numberOfHours+$(echo $courseNumbers | cut -b 2 )
         
 
         >tmp.txt    #making the file empty
 
-        if [ $courseNumbers -le 1999 ] || [ $courseNumbers -ge 6000 ];then
 
-            echo "WRONG COURSE ID"
+
+        # if [ $courseNumbers -le 1999 ] || [ $courseNumbers -ge 6000 ];then
+
+        #     echo "WRONG COURSE ID, ID SHOULD BE BETWEEN 2000-5999"
+
             
-            return
+            
+        #     return
 
 
-        fi
+        # fi
 
 
         echo "PLEASE INPUT COURSE MARK '60-99' OR 'F/FA/I' "
         read courseMark
 
-        if [ "$courseMark" != "F" ] && [ "$courseMark" != "FA" ] && [ "$courseMark" != "I" ];then
+        while [ "$courseMark" != "F" ] && [ "$courseMark" != "FA" ] && [ "$courseMark" != "I" ];do
 
             if [ "$courseMark" -ge 100 ] || [ "$courseMark" -le 59 ];then
 
                 echo "INVALID MARK "
+                echo "TRY AGAIN WITH VALID MARK PLEASE F, I, FA 60-99 "
+                
+                read courseMark
 
+                continue
 
 
             fi
 
+            break #maybe
 
-        fi
+
+        done
 
         newSemString+=$courseID
         newSemString+=" "
@@ -377,8 +527,8 @@ do
         4) printAllAvgSem;;
         5) printTotalPassedHours $fileName ;;
         6) alotOfTalk $fileName;;
-        7) printHoursSem;;
-        8) printNumTotalCourseTaken;;
+        7) printHoursSem $fileName ;;#done
+        8) printNumTotalCourseTaken $fileName;;
         9) printNumLabsTaken $fileName ;;
         10) insertNewSem  $fileName;;
         11) changeGrade;;

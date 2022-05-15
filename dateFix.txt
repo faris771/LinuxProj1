@@ -1,0 +1,22 @@
+if echo $sem | grep -q "-";then
+        
+    
+    else
+        echo "INVALID DATE"
+        return
+
+    fi
+
+    if echo $sem | cut -d'-' -f1 | grep -q "[^0-9]" ;then
+
+        echo "INVALID DATE"
+        return
+    fi
+
+    if echo $sem | cut -d'-' -f2 | grep -q "[^0-9]"  ;then
+
+        echo "INVALID DATE"
+        return
+
+    fi
+
